@@ -31,6 +31,7 @@ export interface OrderItem {
 
 export interface DeletedOrderItem {
   id: number;
+  originalItemId?: number;
   deletedOrderId?: number;
   orderId?: number;
   productId: number;
@@ -88,7 +89,7 @@ export interface DeletedOrder {
   originalUpdatedAt?: string;
   deletedAt: string;
   User?: User;
-  area?: Area;
+  area?: Omit<Area, 'color' | 'companyId'> & Partial<Pick<Area, 'color' | 'companyId'>>;
   deletedOrderItems?: DeletedOrderItem[];
 }
 

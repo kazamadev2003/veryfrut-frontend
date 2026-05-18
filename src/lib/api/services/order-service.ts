@@ -33,6 +33,10 @@ export type {
 };
 
 class OrderService {
+  private unwrapData<T>(payload: T | ApiResponse<T>): T | undefined {
+    return (payload as ApiResponse<T>)?.data || (payload as T);
+  }
+
   /**
    * Crear nueva orden
    */
@@ -206,6 +210,35 @@ class OrderService {
       };
     } catch (error) {
       console.error('[OrderService] Error en getDeleted:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener una orden eliminada por ID
+   */
+  async getDeletedById(id: string | number): Promise<DeletedOrder | undefined> {
+    try {
+      const response = await axiosInstance.get<DeletedOrder | ApiResponse<DeletedOrder>>(`/orders/deleted/${id}`);
+      const data = this.unwrapData(response.data);
+      return data && typeof data === 'object' && 'id' in data ? (data as DeletedOrder) : undefined;
+    } catch (error) {
+      console.error('[OrderService] Error en getDeletedById:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restaurar una orden eliminada
+   */
+  async restoreDeleted(id: string | number): Promise<Order | DeletedOrder | { success: boolean } | undefined> {
+    try {
+      const response = await axiosInstance.post<
+        Order | DeletedOrder | { success: boolean } | ApiResponse<Order | DeletedOrder | { success: boolean }>
+      >(`/orders/deleted/${id}/restore`);
+      return this.unwrapData(response.data);
+    } catch (error) {
+      console.error('[OrderService] Error en restoreDeleted:', error);
       throw error;
     }
   }

@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import Link from 'next/link'
-import { AlertCircle, Eye, Loader2, Search, Trash2 } from 'lucide-react'
-import { useDeletedOrdersQuery } from '@/lib/api'
+import { AlertCircle, Eye, Loader2, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useDeletedOrderQuery, useDeletedOrdersQuery, useRestoreDeletedOrderMutation } from '@/lib/api'
 import type { DeletedOrder, GetDeletedOrdersParams } from '@/types/order'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -22,6 +23,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -69,6 +71,7 @@ export default function RecycledDeletedPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [q, setQ] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<DeletedOrder | null>(null)
+  const [restoringId, setRestoringId] = useState<number | null>(null)
 
   const { data, isLoading, error } = useDeletedOrdersQuery({
     page,
@@ -77,6 +80,8 @@ export default function RecycledDeletedPage() {
     order,
     q: q.trim() || undefined,
   })
+  const { data: selectedOrderDetail, isLoading: isLoadingDetail } = useDeletedOrderQuery(selectedOrder?.id ?? null)
+  const restoreMutation = useRestoreDeletedOrderMutation()
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -110,7 +115,30 @@ export default function RecycledDeletedPage() {
     setQ(searchTerm)
   }
 
+  const handleView = (deletedOrder: DeletedOrder) => {
+    setSelectedOrder(deletedOrder)
+  }
+
+  const handleRestore = async (deletedOrder: DeletedOrder) => {
+    if (!window.confirm(`Deseas restaurar el pedido #${deletedOrder.originalOrderId}?`)) return
+
+    try {
+      setRestoringId(deletedOrder.id)
+      await restoreMutation.mutateAsync(deletedOrder.id)
+      toast.success('Pedido restaurado')
+      if (selectedOrder?.id === deletedOrder.id) {
+        setSelectedOrder(null)
+      }
+    } catch (restoreError) {
+      console.error('[RecycledDeletedPage] Error restoring deleted order:', restoreError)
+      toast.error('No se pudo restaurar el pedido')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
   const orders = data?.items ?? []
+  const detailOrder = selectedOrderDetail ?? selectedOrder
   const totalItems = data?.total ?? 0
   const totalPages = data?.totalPages || 1
   const currentStart = totalItems === 0 ? 0 : (page - 1) * limit + 1
@@ -316,15 +344,31 @@ export default function RecycledDeletedPage() {
                           </div>
                         </div>
 
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          className='h-8 w-full text-xs'
-                          onClick={() => setSelectedOrder(deletedOrder)}
-                        >
-                          <Eye className='w-3.5 h-3.5 mr-1' />
-                          Ver productos
-                        </Button>
+                        <div className='grid grid-cols-2 gap-2'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='h-8 text-xs'
+                            onClick={() => handleView(deletedOrder)}
+                          >
+                            <Eye className='w-3.5 h-3.5 mr-1' />
+                            Ver
+                          </Button>
+                          <Button
+                            variant='default'
+                            size='sm'
+                            className='h-8 text-xs'
+                            onClick={() => handleRestore(deletedOrder)}
+                            disabled={restoreMutation.isPending && restoringId === deletedOrder.id}
+                          >
+                            {restoreMutation.isPending && restoringId === deletedOrder.id ? (
+                              <Loader2 className='w-3.5 h-3.5 animate-spin mr-1' />
+                            ) : (
+                              <RotateCcw className='w-3.5 h-3.5 mr-1' />
+                            )}
+                            Recuperar pedido
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -339,8 +383,7 @@ export default function RecycledDeletedPage() {
                         <TableHead className='w-[120px] text-xs px-2'>Area</TableHead>
                         <TableHead className='w-[260px] text-xs px-2'>Productos</TableHead>
                         <TableHead className='w-[120px] text-xs px-2'>Estado</TableHead>
-                        <TableHead className='w-[120px] text-xs px-2'>Total</TableHead>
-                        <TableHead className='sticky right-0 z-10 w-[88px] bg-background text-right text-xs px-2 border-l border-border'>
+                        <TableHead className='sticky right-0 z-10 w-[150px] bg-background text-right text-xs px-2 border-l border-border'>
                           Acciones
                         </TableHead>
                       </TableRow>
@@ -383,20 +426,35 @@ export default function RecycledDeletedPage() {
                               {statusLabels[deletedOrder.status] || deletedOrder.status}
                             </div>
                           </TableCell>
-                          <TableCell className='px-2 text-xs font-medium'>
-                            {formatCurrency(deletedOrder.totalAmount)}
-                          </TableCell>
                           <TableCell className='sticky right-0 bg-background group-hover:bg-muted/50 text-right px-2 border-l border-border'>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              className='h-7 w-7 p-0'
-                              title='Ver productos'
-                              aria-label='Ver productos'
-                              onClick={() => setSelectedOrder(deletedOrder)}
-                            >
-                              <Eye className='w-3.5 h-3.5' />
-                            </Button>
+                            <div className='flex justify-end gap-1'>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-7 w-7 p-0'
+                                title='Ver productos'
+                                aria-label='Ver productos'
+                                onClick={() => handleView(deletedOrder)}
+                              >
+                                <Eye className='w-3.5 h-3.5' />
+                              </Button>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='h-7 px-2 text-xs text-green-700 hover:text-green-800 hover:bg-green-50'
+                                title='Restaurar'
+                                aria-label='Restaurar'
+                                onClick={() => handleRestore(deletedOrder)}
+                                disabled={restoreMutation.isPending && restoringId === deletedOrder.id}
+                              >
+                                {restoreMutation.isPending && restoringId === deletedOrder.id ? (
+                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                ) : (
+                                  <RotateCcw className='w-3.5 h-3.5 mr-1' />
+                                )}
+                                Recuperar
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -452,32 +510,48 @@ export default function RecycledDeletedPage() {
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <DialogContent className='sm:max-w-2xl'>
           <DialogHeader>
-            <DialogTitle>Pedido eliminado #{selectedOrder?.originalOrderId}</DialogTitle>
+            <DialogTitle>Pedido eliminado #{detailOrder?.originalOrderId}</DialogTitle>
             <DialogDescription>
-              {selectedOrder
-                ? `Eliminado: ${formatDate(selectedOrder.deletedAt)} - Original: ${formatDate(selectedOrder.originalCreatedAt)}`
+              {detailOrder
+                ? `Eliminado: ${formatDate(detailOrder.deletedAt)} - Original: ${formatDate(detailOrder.originalCreatedAt)}`
                 : 'Sin pedido seleccionado'}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedOrder ? (
+          {isLoadingDetail ? (
+            <div className='flex items-center justify-center py-10'>
+              <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
+            </div>
+          ) : detailOrder ? (
             <div className='space-y-4'>
-              <div className='grid gap-3 sm:grid-cols-4 text-sm'>
+              <div className='grid gap-3 sm:grid-cols-3 text-sm'>
                 <div>
                   <p className='text-muted-foreground'>Estado</p>
-                  <p className='font-medium'>{statusLabels[selectedOrder.status] || selectedOrder.status}</p>
+                  <p className='font-medium'>{statusLabels[detailOrder.status] || detailOrder.status}</p>
                 </div>
                 <div>
                   <p className='text-muted-foreground'>Area</p>
-                  <p className='font-medium'>{selectedOrder.area?.name || `Area ${selectedOrder.areaId}`}</p>
+                  <p className='font-medium'>{detailOrder.area?.name || `Area ${detailOrder.areaId}`}</p>
                 </div>
                 <div>
                   <p className='text-muted-foreground'>Productos</p>
-                  <p className='font-medium'>{selectedOrder.deletedOrderItems?.length || 0}</p>
+                  <p className='font-medium'>{detailOrder.deletedOrderItems?.length || 0}</p>
+                </div>
+              </div>
+
+              <div className='grid gap-3 sm:grid-cols-2 text-sm'>
+                <div>
+                  <p className='text-muted-foreground'>Cliente</p>
+                  <p className='font-medium'>
+                    {detailOrder.User
+                      ? `${detailOrder.User.firstName} ${detailOrder.User.lastName}`
+                      : `Usuario ${detailOrder.userId ?? 'N/A'}`}
+                  </p>
+                  <p className='text-xs text-muted-foreground'>{detailOrder.User?.email || ''}</p>
                 </div>
                 <div>
-                  <p className='text-muted-foreground'>Total</p>
-                  <p className='font-medium'>{formatCurrency(selectedOrder.totalAmount)}</p>
+                  <p className='text-muted-foreground'>Empresa</p>
+                  <p className='font-medium'>{detailOrder.area?.company?.name || 'N/A'}</p>
                 </div>
               </div>
 
@@ -491,7 +565,7 @@ export default function RecycledDeletedPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(selectedOrder.deletedOrderItems || []).map((item) => (
+                    {(detailOrder.deletedOrderItems || []).map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.product?.name || `Producto ${item.productId}`}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
@@ -505,11 +579,26 @@ export default function RecycledDeletedPage() {
               <div>
                 <p className='text-sm text-muted-foreground'>Observacion</p>
                 <p className='text-sm font-medium'>
-                  {selectedOrder.observation?.trim() ? selectedOrder.observation : 'Sin observacion'}
+                  {detailOrder.observation?.trim() ? detailOrder.observation : 'Sin observacion'}
                 </p>
               </div>
             </div>
           ) : null}
+
+          <DialogFooter>
+            <Button
+              type='button'
+              onClick={() => detailOrder && handleRestore(detailOrder)}
+              disabled={!detailOrder || (restoreMutation.isPending && restoringId === detailOrder.id)}
+            >
+              {detailOrder && restoreMutation.isPending && restoringId === detailOrder.id ? (
+                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+              ) : (
+                <RotateCcw className='h-4 w-4 mr-2' />
+              )}
+              Restaurar pedido
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

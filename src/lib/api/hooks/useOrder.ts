@@ -48,6 +48,18 @@ export function useDeletedOrdersQuery(params?: GetDeletedOrdersParams) {
 }
 
 /**
+ * Query: Obtener detalle de una orden eliminada
+ */
+export function useDeletedOrderQuery(id: number | null) {
+  return useQuery({
+    queryKey: queryKeys.orders.deletedDetail(id as number),
+    queryFn: () => orderService.getDeletedById(id as number),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
  * Query: Obtener orden por ID
  */
 export function useOrderQuery(id: number | null) {
@@ -177,6 +189,22 @@ export function useDeleteOrderMutation() {
       if (context?.userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.byCustomer(context.userId) });
       }
+    },
+  });
+}
+
+/**
+ * Mutation: Restaurar orden eliminada
+ */
+export function useRestoreDeletedOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => orderService.restoreDeleted(id),
+    onSuccess: (_restoredOrder, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.deletedLists() });
+      queryClient.removeQueries({ queryKey: queryKeys.orders.deletedDetail(id) });
     },
   });
 }
