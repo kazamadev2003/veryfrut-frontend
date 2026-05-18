@@ -10,8 +10,11 @@ import {
   UpdateOrderDto,
   CheckOrderDto,
   CheckOrderResponse,
+  DeletedOrder,
+  GetDeletedOrdersParams,
   GetOrdersParams,
   GetOrdersByDateRangeParams,
+  PaginatedDeletedOrdersResponse,
   PaginatedOrdersResponse,
 } from '@/types/order';
 
@@ -22,8 +25,10 @@ export type {
   UpdateOrderDto,
   CheckOrderDto,
   CheckOrderResponse,
+  GetDeletedOrdersParams,
   GetOrdersParams,
   GetOrdersByDateRangeParams,
+  PaginatedDeletedOrdersResponse,
   PaginatedOrdersResponse,
 };
 
@@ -143,6 +148,64 @@ class OrderService {
       return data;
     } catch (error) {
       console.error('[OrderService] Error en getAll:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener ordenes eliminadas con paginacion, ordenamiento y busqueda
+   */
+  async getDeleted(params?: GetDeletedOrdersParams): Promise<PaginatedDeletedOrdersResponse> {
+    try {
+      const response = await axiosInstance.get<
+        | { data: DeletedOrder[]; meta?: Record<string, unknown> }
+        | ApiResponse<{ data: DeletedOrder[]; meta?: Record<string, unknown> }>
+        | DeletedOrder[]
+      >('/orders/deleted', { params });
+
+      const payload = response.data as unknown;
+
+      if (Array.isArray(payload)) {
+        return {
+          items: payload as DeletedOrder[],
+          total: payload.length,
+          page: params?.page ?? 1,
+          limit: params?.limit ?? 10,
+          hasMore: false,
+          totalPages: Math.ceil(payload.length / (params?.limit ?? 10)),
+          hasNextPage: false,
+          hasPrevPage: false,
+        };
+      }
+
+      const payloadRecord = payload as Record<string, unknown> | undefined;
+      const dataRoot = payloadRecord?.data &&
+        typeof payloadRecord.data === 'object' &&
+        !Array.isArray(payloadRecord.data) &&
+        'data' in (payloadRecord.data as Record<string, unknown>)
+        ? (payloadRecord.data as Record<string, unknown>)
+        : payloadRecord;
+      const items = Array.isArray(dataRoot?.data) ? (dataRoot.data as DeletedOrder[]) : [];
+      const meta = (dataRoot?.meta && typeof dataRoot.meta === 'object'
+        ? dataRoot.meta
+        : {}) as Record<string, unknown>;
+      const page = (meta.page as number) ?? params?.page ?? 1;
+      const limit = (meta.limit as number) ?? params?.limit ?? 10;
+      const total = (meta.total as number) ?? items.length;
+      const totalPages = (meta.totalPages as number) ?? Math.ceil(total / limit);
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+        hasMore: Boolean(meta.hasNextPage ?? page < totalPages),
+        hasNextPage: Boolean(meta.hasNextPage ?? page < totalPages),
+        hasPrevPage: Boolean(meta.hasPrevPage ?? page > 1),
+      };
+    } catch (error) {
+      console.error('[OrderService] Error en getDeleted:', error);
       throw error;
     }
   }

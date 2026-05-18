@@ -113,6 +113,8 @@ export const queryKeys = {
       [...queryKeys.orders.all, 'byCustomer', customerId] as const,
     byDateRange: (startDate: string, endDate: string) =>
       [...queryKeys.orders.all, 'byDateRange', startDate, endDate] as const,
+    deleted: (filters?: Record<string, unknown>) =>
+      [...queryKeys.orders.all, 'deleted', { ...filters }] as const,
   },
 
   // Suppliers (Proveedores)

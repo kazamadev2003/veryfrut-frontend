@@ -29,6 +29,18 @@ export interface OrderItem {
   };
 }
 
+export interface DeletedOrderItem {
+  id: number;
+  deletedOrderId?: number;
+  orderId?: number;
+  productId: number;
+  quantity: number;
+  price?: number;
+  unitMeasurementId?: number;
+  product?: OrderItem['product'];
+  unitMeasurement?: OrderItem['unitMeasurement'];
+}
+
 export interface User {
   id: number;
   firstName: string;
@@ -62,6 +74,22 @@ export interface Order {
   User?: User;
   area?: Area;
   orderItems?: OrderItem[];
+}
+
+export interface DeletedOrder {
+  id: number;
+  originalOrderId: number;
+  areaId: number;
+  userId?: number;
+  totalAmount: number;
+  status: OrderStatus;
+  observation?: string;
+  originalCreatedAt?: string;
+  originalUpdatedAt?: string;
+  deletedAt: string;
+  User?: User;
+  area?: Area;
+  deletedOrderItems?: DeletedOrderItem[];
 }
 
 export type OrderStatus = 'created' | 'process' | 'delivered' | 'pending' | 'confirmed' | 'cancelled';
@@ -130,6 +158,23 @@ export interface GetOrdersParams {
   userId?: number;
 }
 
+export interface GetDeletedOrdersParams {
+  page?: number;
+  limit?: number;
+  sortBy?:
+    | 'id'
+    | 'originalOrderId'
+    | 'areaId'
+    | 'userId'
+    | 'totalAmount'
+    | 'status'
+    | 'originalCreatedAt'
+    | 'originalUpdatedAt'
+    | 'deletedAt';
+  order?: 'asc' | 'desc';
+  q?: string;
+}
+
 /**
  * Parámetros para filtrar órdenes por fecha
  */
@@ -150,4 +195,15 @@ export interface PaginatedOrdersResponse {
   limit: number;
   hasMore: boolean;
   totalPages: number;
+}
+
+export interface PaginatedDeletedOrdersResponse {
+  items: DeletedOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }

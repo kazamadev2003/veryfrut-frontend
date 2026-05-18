@@ -10,11 +10,12 @@ import orderService, {
   UpdateOrderDto,
   CheckOrderDto,
   CheckOrderResponse,
+  GetDeletedOrdersParams,
   GetOrdersParams,
   GetOrdersByDateRangeParams,
 } from '../services/order-service';
 import { queryKeys } from '../queryKeys';
-import { Order, PaginatedOrdersResponse, OrderStatus } from '@/types/order';
+import { Order, PaginatedDeletedOrdersResponse, PaginatedOrdersResponse, OrderStatus } from '@/types/order';
 
 /**
  * Query: Obtener todas las órdenes con paginación, ordenamiento y búsqueda
@@ -29,6 +30,20 @@ export function useOrdersQuery(params?: GetOrdersParams) {
       return response as PaginatedOrdersResponse;
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+}
+
+/**
+ * Query: Obtener ordenes eliminadas con paginacion, ordenamiento y busqueda
+ */
+export function useDeletedOrdersQuery(params?: GetDeletedOrdersParams) {
+  return useQuery({
+    queryKey: queryKeys.orders.deleted(params as Record<string, unknown>),
+    queryFn: async () => {
+      const response = await orderService.getDeleted(params);
+      return response as PaginatedDeletedOrdersResponse;
+    },
+    staleTime: 1000 * 60 * 5,
   });
 }
 

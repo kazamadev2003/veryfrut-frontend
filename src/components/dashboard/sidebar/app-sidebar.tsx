@@ -8,6 +8,7 @@ import {
   Send,
   MapPinned ,
   ShoppingCart,
+  Trash2,
   Users,
 } from "lucide-react"
 
@@ -96,6 +97,11 @@ const data = {
       name: "Veryfrut",
       url: "/",
       icon: Apple,
+    },
+    {
+      name: "Reciclado / Eliminados",
+      url: "/dashboard/recycled-deleted",
+      icon: Trash2,
     }
   ],
 }
