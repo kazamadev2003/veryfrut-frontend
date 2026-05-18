@@ -99,7 +99,7 @@ const data = {
       icon: Apple,
     },
     {
-      name: "Reciclado / Eliminados",
+      name: "Papelera",
       url: "/dashboard/recycled-deleted",
       icon: Trash2,
     }
