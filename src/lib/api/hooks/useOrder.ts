@@ -210,6 +210,21 @@ export function useRestoreDeletedOrderMutation() {
 }
 
 /**
+ * Mutation: Eliminar definitivamente una orden eliminada
+ */
+export function useDeleteDeletedOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => orderService.deleteDeleted(id),
+    onSuccess: (_deletedOrder, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.deletedLists() });
+      queryClient.removeQueries({ queryKey: queryKeys.orders.deletedDetail(id) });
+    },
+  });
+}
+
+/**
  * Mutation: Actualizar estado de orden
  */
 export function useUpdateOrderStatusMutation() {

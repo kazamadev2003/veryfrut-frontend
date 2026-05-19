@@ -244,6 +244,21 @@ class OrderService {
   }
 
   /**
+   * Eliminar definitivamente una orden eliminada
+   */
+  async deleteDeleted(id: string | number): Promise<{ message?: string; success?: boolean } | undefined> {
+    try {
+      const response = await axiosInstance.delete<
+        { message?: string; success?: boolean } | ApiResponse<{ message?: string; success?: boolean }>
+      >(`/orders/deleted/${id}`);
+      return this.unwrapData(response.data);
+    } catch (error) {
+      console.error('[OrderService] Error en deleteDeleted:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Verificar existencia de orden
    */
   async check(data: CheckOrderDto): Promise<CheckOrderResponse> {

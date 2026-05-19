@@ -5,7 +5,12 @@ import type { FormEvent } from 'react'
 import Link from 'next/link'
 import { AlertCircle, Eye, Loader2, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useDeletedOrderQuery, useDeletedOrdersQuery, useRestoreDeletedOrderMutation } from '@/lib/api'
+import {
+  useDeletedOrderQuery,
+  useDeletedOrdersQuery,
+  useDeleteDeletedOrderMutation,
+  useRestoreDeletedOrderMutation,
+} from '@/lib/api'
 import type { DeletedOrder, GetDeletedOrdersParams } from '@/types/order'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -72,6 +77,7 @@ export default function RecycledDeletedPage() {
   const [q, setQ] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<DeletedOrder | null>(null)
   const [restoringId, setRestoringId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const { data, isLoading, error } = useDeletedOrdersQuery({
     page,
@@ -82,6 +88,7 @@ export default function RecycledDeletedPage() {
   })
   const { data: selectedOrderDetail, isLoading: isLoadingDetail } = useDeletedOrderQuery(selectedOrder?.id ?? null)
   const restoreMutation = useRestoreDeletedOrderMutation()
+  const deleteMutation = useDeleteDeletedOrderMutation()
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -134,6 +141,24 @@ export default function RecycledDeletedPage() {
       toast.error('No se pudo restaurar el pedido')
     } finally {
       setRestoringId(null)
+    }
+  }
+
+  const handlePermanentDelete = async (deletedOrder: DeletedOrder) => {
+    if (!window.confirm(`Deseas borrar definitivamente el pedido #${deletedOrder.originalOrderId}? Esta accion no se puede deshacer.`)) return
+
+    try {
+      setDeletingId(deletedOrder.id)
+      await deleteMutation.mutateAsync(deletedOrder.id)
+      toast.success('Pedido borrado definitivamente')
+      if (selectedOrder?.id === deletedOrder.id) {
+        setSelectedOrder(null)
+      }
+    } catch (deleteError) {
+      console.error('[RecycledDeletedPage] Error permanently deleting order:', deleteError)
+      toast.error('No se pudo borrar definitivamente el pedido')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -344,7 +369,7 @@ export default function RecycledDeletedPage() {
                           </div>
                         </div>
 
-                        <div className='grid grid-cols-2 gap-2'>
+                        <div className='grid grid-cols-3 gap-2'>
                           <Button
                             variant='outline'
                             size='sm'
@@ -366,7 +391,21 @@ export default function RecycledDeletedPage() {
                             ) : (
                               <RotateCcw className='w-3.5 h-3.5 mr-1' />
                             )}
-                            Recuperar pedido
+                            Recuperar
+                          </Button>
+                          <Button
+                            variant='destructive'
+                            size='sm'
+                            className='h-8 text-xs'
+                            onClick={() => handlePermanentDelete(deletedOrder)}
+                            disabled={deleteMutation.isPending && deletingId === deletedOrder.id}
+                          >
+                            {deleteMutation.isPending && deletingId === deletedOrder.id ? (
+                              <Loader2 className='w-3.5 h-3.5 animate-spin mr-1' />
+                            ) : (
+                              <Trash2 className='w-3.5 h-3.5 mr-1' />
+                            )}
+                            Borrar
                           </Button>
                         </div>
                       </CardContent>
@@ -383,7 +422,7 @@ export default function RecycledDeletedPage() {
                         <TableHead className='w-[120px] text-xs px-2'>Area</TableHead>
                         <TableHead className='w-[260px] text-xs px-2'>Productos</TableHead>
                         <TableHead className='w-[120px] text-xs px-2'>Estado</TableHead>
-                        <TableHead className='sticky right-0 z-10 w-[150px] bg-background text-right text-xs px-2 border-l border-border'>
+                        <TableHead className='sticky right-0 z-10 w-[230px] bg-background text-right text-xs px-2 border-l border-border'>
                           Acciones
                         </TableHead>
                       </TableRow>
@@ -453,6 +492,22 @@ export default function RecycledDeletedPage() {
                                   <RotateCcw className='w-3.5 h-3.5 mr-1' />
                                 )}
                                 Recuperar
+                              </Button>
+                              <Button
+                                variant='destructive'
+                                size='sm'
+                                className='h-7 px-2 text-xs'
+                                title='Borrar definitivamente'
+                                aria-label='Borrar definitivamente'
+                                onClick={() => handlePermanentDelete(deletedOrder)}
+                                disabled={deleteMutation.isPending && deletingId === deletedOrder.id}
+                              >
+                                {deleteMutation.isPending && deletingId === deletedOrder.id ? (
+                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                ) : (
+                                  <Trash2 className='w-3.5 h-3.5 mr-1' />
+                                )}
+                                Borrar
                               </Button>
                             </div>
                           </TableCell>
@@ -586,6 +641,19 @@ export default function RecycledDeletedPage() {
           ) : null}
 
           <DialogFooter>
+            <Button
+              type='button'
+              variant='destructive'
+              onClick={() => detailOrder && handlePermanentDelete(detailOrder)}
+              disabled={!detailOrder || (deleteMutation.isPending && deletingId === detailOrder.id)}
+            >
+              {detailOrder && deleteMutation.isPending && deletingId === detailOrder.id ? (
+                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+              ) : (
+                <Trash2 className='h-4 w-4 mr-2' />
+              )}
+              Borrar definitivo
+            </Button>
             <Button
               type='button'
               onClick={() => detailOrder && handleRestore(detailOrder)}
