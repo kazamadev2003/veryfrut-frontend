@@ -32,18 +32,17 @@ import { UnitMeasurement } from '@/types/unit-measurement';
 interface FormData {
   name: string;
   description: string;
-  price: number;
-  stock: number;
   imageUrl: string;
   categoryId: number;
   unitMeasurementIds: number[];
 }
 
+const DEFAULT_PRODUCT_PRICE = 10;
+const DEFAULT_PRODUCT_STOCK = 99999;
+
 const initialFormData: FormData = {
   name: '',
   description: '',
-  price: 0,
-  stock: 0,
   imageUrl: '',
   categoryId: 0,
   unitMeasurementIds: [],
@@ -222,8 +221,8 @@ export default function ProductsPage() {
         await updateMutation.mutateAsync({
           name: formData.name,
           description: formData.description || undefined,
-          price: formData.price,
-          stock: formData.stock,
+          price: DEFAULT_PRODUCT_PRICE,
+          stock: DEFAULT_PRODUCT_STOCK,
           imageUrl: formData.imageUrl || undefined,
           categoryId: formData.categoryId,
           unitMeasurementIds: formData.unitMeasurementIds.length > 0 ? formData.unitMeasurementIds : undefined,
@@ -232,8 +231,8 @@ export default function ProductsPage() {
         await createMutation.mutateAsync({
           name: formData.name,
           description: formData.description || undefined,
-          price: formData.price,
-          stock: formData.stock,
+          price: DEFAULT_PRODUCT_PRICE,
+          stock: DEFAULT_PRODUCT_STOCK,
           imageUrl: formData.imageUrl || undefined,
           categoryId: formData.categoryId,
           unitMeasurementIds: formData.unitMeasurementIds,
@@ -263,8 +262,6 @@ export default function ProductsPage() {
     setFormData({
       name: product.name,
       description: product.description || '',
-      price: product.price,
-      stock: product.stock,
       imageUrl: product.imageUrl || '',
       categoryId: product.categoryId,
       unitMeasurementIds: product.unitMeasurementIds || [],
@@ -375,35 +372,6 @@ export default function ProductsPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   disabled={isFormBusy}
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Precio *</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                    required
-                    disabled={isFormBusy}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Stock *</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    required
-                    disabled={isFormBusy}
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -552,15 +520,13 @@ export default function ProductsPage() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Nombre</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Categoría</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Precio</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Stock</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.length === 0 ? (
                     <tr className="border-b border-border">
-                      <td colSpan={5} className="py-12 px-4 text-center text-sm text-muted-foreground">
+                      <td colSpan={3} className="py-12 px-4 text-center text-sm text-muted-foreground">
                         No hay productos disponibles
                       </td>
                     </tr>
@@ -591,14 +557,6 @@ export default function ProductsPage() {
                           </td>
                           <td className="py-4 px-4">
                             <p className="text-sm text-muted-foreground">{category?.name || '-'}</p>
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            <p className="text-sm font-medium text-foreground">${product.price.toFixed(2)}</p>
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            <p className={`text-sm font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {product.stock}
-                            </p>
                           </td>
                           <td className="py-4 px-4 text-right">
                             <div className="flex gap-2 justify-end">
