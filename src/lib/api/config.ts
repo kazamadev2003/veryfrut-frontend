@@ -3,7 +3,7 @@
  * Dominio base y valores por defecto para toda la aplicación
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.veryfrut.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://veryfrut-764179087940.us-central1.run.app/api';
 const API_TIMEOUT = 30000; // 30 segundos
 
 export const apiConfig = {
