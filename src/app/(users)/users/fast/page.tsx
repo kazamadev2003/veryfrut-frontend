@@ -471,7 +471,7 @@ const FastOrdersPage = () => {
       }
       toast.success("Orden creada con exito")
       if (createdOrderId) {
-        router.push(`/users/history?orderId=${createdOrderId}`)
+        router.push(`/users/history?orderId=${createdOrderId}&print=1`)
       } else {
         router.push("/users/history")
       }

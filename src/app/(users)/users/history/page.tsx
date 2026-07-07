@@ -112,6 +112,8 @@ function UsersHistoryPageContent() {
   const [isClearingOrders, setIsClearingOrders] = useState(false)
   const [detailOrderId, setDetailOrderId] = useState<number | null>(null)
   const [autoOpenedOrderId, setAutoOpenedOrderId] = useState<number | null>(null)
+  const [printPromptOrderId, setPrintPromptOrderId] = useState<number | null>(null)
+  const [autoOpenedPrintOrderId, setAutoOpenedPrintOrderId] = useState<number | null>(null)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -162,9 +164,14 @@ function UsersHistoryPageContent() {
     const parsed = Number.parseInt(raw, 10)
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null
   }, [searchParams])
+  const shouldShowPrintPrompt = searchParams.get("print") === "1"
   const detailOrder = useMemo(
     () => orders.find((order) => order.id === detailOrderId) ?? null,
     [detailOrderId, orders]
+  )
+  const printPromptOrder = useMemo(
+    () => orders.find((order) => order.id === printPromptOrderId) ?? null,
+    [orders, printPromptOrderId],
   )
 
   useEffect(() => {
@@ -172,6 +179,19 @@ function UsersHistoryPageContent() {
 
     queueMicrotask(() => {
       if (!isActive) return
+
+      if (shouldShowPrintPrompt) {
+        if (!selectedOrderIdFromQuery) {
+          setAutoOpenedPrintOrderId(null)
+          return
+        }
+        if (autoOpenedPrintOrderId === selectedOrderIdFromQuery) return
+        const targetOrder = orders.find((order) => order.id === selectedOrderIdFromQuery)
+        if (!targetOrder) return
+        setPrintPromptOrderId(targetOrder.id)
+        setAutoOpenedPrintOrderId(targetOrder.id)
+        return
+      }
 
       if (!selectedOrderIdFromQuery) {
         setAutoOpenedOrderId(null)
@@ -187,10 +207,17 @@ function UsersHistoryPageContent() {
     return () => {
       isActive = false
     }
-  }, [autoOpenedOrderId, orders, selectedOrderIdFromQuery])
+  }, [autoOpenedOrderId, autoOpenedPrintOrderId, orders, selectedOrderIdFromQuery, shouldShowPrintPrompt])
 
   const closeDetailDialog = useCallback(() => {
     setDetailOrderId(null)
+    if (selectedOrderIdFromQuery) {
+      router.replace(pathname, { scroll: false })
+    }
+  }, [pathname, router, selectedOrderIdFromQuery])
+
+  const closePrintPrompt = useCallback(() => {
+    setPrintPromptOrderId(null)
     if (selectedOrderIdFromQuery) {
       router.replace(pathname, { scroll: false })
     }
@@ -547,6 +574,40 @@ function UsersHistoryPageContent() {
                   <Download className="h-4 w-4" />
                 )}
                 Descargar PDF
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={printPromptOrderId !== null} onOpenChange={(open) => !open && closePrintPrompt()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {printPromptOrder ? `Pedido guardado #${printPromptOrder.id}` : "Pedido guardado"}
+            </DialogTitle>
+            <DialogDescription>
+              El pedido ya fue enviado a historial. Si deseas, puedes imprimirlo ahora.
+            </DialogDescription>
+          </DialogHeader>
+
+          {printPromptOrder ? (
+            <div className="space-y-2 text-sm text-gray-700">
+              <p><span className="font-semibold">Area:</span> {printPromptOrder.area?.name || `Area #${printPromptOrder.areaId}`}</p>
+              <p><span className="font-semibold">Items:</span> {(printPromptOrder.orderItems || []).length}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Cargando pedido...</p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closePrintPrompt}>
+              Cerrar
+            </Button>
+            {printPromptOrder && (
+              <Button onClick={() => void handleDownloadOrder(printPromptOrder)} className="gap-2">
+                <Download className="h-4 w-4" />
+                Imprimir
               </Button>
             )}
           </DialogFooter>

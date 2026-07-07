@@ -336,7 +336,7 @@ export default function OrderHistoryDetailPage() {
       setAddedItems([])
       setDraftObservationTouched(false)
       toast.success("Pedido actualizado")
-      router.push("/users/history")
+      router.push(`/users/history?orderId=${order.id}&print=1`)
     } catch (error) {
       console.error("[OrderHistoryDetailPage] Error updating order:", error)
       toast.error("No se pudo actualizar el pedido")
@@ -584,10 +584,10 @@ export default function OrderHistoryDetailPage() {
                   {visibleExistingItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                      className="flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white">
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <div className="relative hidden h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white sm:block">
                           <Image
                             src={getSafeImageSrc(item.product?.imageUrl || productImageById.get(item.productId))}
                             alt={item.product?.name || `Producto ${item.productId}`}
@@ -673,14 +673,14 @@ export default function OrderHistoryDetailPage() {
                   {visibleExistingItems.length === 0 && addedItems.length === 0 && (
                     <p className="text-sm text-gray-500">No hay items registrados en esta orden.</p>
                   )}
-                  {canEdit &&
-                    addedItems.map((item) => (
-                      <div
-                        key={item.tempId}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white">
+                    {canEdit &&
+                     addedItems.map((item) => (
+                       <div
+                         key={item.tempId}
+                         className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                       >
+                         <div className="flex min-w-0 flex-1 items-center gap-3">
+                           <div className="relative hidden h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white sm:block">
                             <Image
                               src={getSafeImageSrc(item.imageUrl)}
                               alt={item.productName}
