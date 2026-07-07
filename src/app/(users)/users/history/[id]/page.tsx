@@ -175,6 +175,30 @@ export default function OrderHistoryDetailPage() {
     return isToday(order?.createdAt, todayPeruDateKey)
   }, [order?.createdAt, todayPeruDateKey])
 
+  const hasPendingChanges = useMemo(() => {
+    if (!order) return false
+
+    const hasQuantityChanges = Object.entries(draftQuantities).some(([itemId, value]) => {
+      const currentItem = order.orderItems?.find((item) => item.id === Number(itemId))
+      if (!currentItem) return true
+
+      const parsed = Number.parseFloat(value.replace(",", "."))
+      if (!Number.isFinite(parsed)) return true
+
+      return Math.abs(parsed - currentItem.quantity) > 0.0001
+    })
+
+    const currentObservation = order.observation?.trim() || ""
+    const nextObservation = draftObservation.trim()
+
+    return (
+      hasQuantityChanges ||
+      removedExistingItemIds.length > 0 ||
+      addedItems.length > 0 ||
+      (draftObservationTouched && nextObservation !== currentObservation)
+    )
+  }, [addedItems.length, draftObservation, draftObservationTouched, draftQuantities, order, removedExistingItemIds.length])
+
   const productUnitOptions = useMemo(() => {
     const items = productsResponse?.items ?? []
     return items.flatMap((product) =>
@@ -356,6 +380,11 @@ export default function OrderHistoryDetailPage() {
   }, [addedItems, draftObservation, draftObservationTouched, draftQuantities, order, productNameById, removedExistingItemIds])
 
   const handlePrintPdf = useCallback(async () => {
+    if (hasPendingChanges) {
+      toast.error("Guarda los cambios antes de imprimir")
+      return
+    }
+
     const payload = buildPrintPayload()
     if (!payload) {
       toast.error("No hay productos para imprimir")
@@ -388,9 +417,14 @@ export default function OrderHistoryDetailPage() {
     } finally {
       setIsPrinting(false)
     }
-  }, [buildPrintPayload])
+  }, [buildPrintPayload, hasPendingChanges])
 
   const handleDownloadPdf = useCallback(async () => {
+    if (hasPendingChanges) {
+      toast.error("Guarda los cambios antes de descargar")
+      return
+    }
+
     const payload = buildPrintPayload()
     if (!payload) {
       toast.error("No hay productos para descargar")
@@ -421,7 +455,7 @@ export default function OrderHistoryDetailPage() {
     } finally {
       setIsDownloading(false)
     }
-  }, [buildPrintPayload, order?.id])
+  }, [buildPrintPayload, hasPendingChanges, order])
 
   const handleClearOrder = useCallback(async () => {
     if (!order || !orderId) return
@@ -771,15 +805,32 @@ export default function OrderHistoryDetailPage() {
                       )}
                     </Button>
                     <div className="grid grid-cols-2 gap-2">
-                      <Button type="button" variant="outline" onClick={() => void handlePrintPdf()} disabled={isPrinting}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handlePrintPdf()}
+                        disabled={isPrinting || hasPendingChanges || updateOrderMutation.isPending}
+                        title={hasPendingChanges ? "Guarda los cambios antes de imprimir" : undefined}
+                      >
                         {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                         Imprimir
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => void handleDownloadPdf()} disabled={isDownloading}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleDownloadPdf()}
+                        disabled={isDownloading || hasPendingChanges || updateOrderMutation.isPending}
+                        title={hasPendingChanges ? "Guarda los cambios antes de descargar" : undefined}
+                      >
                         {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Descargar
                       </Button>
                     </div>
+                    {hasPendingChanges && (
+                      <p className="text-xs text-amber-700">
+                        Guarda los cambios para habilitar imprimir o descargar.
+                      </p>
+                    )}
                     <div className="grid grid-cols-1 gap-2">
                       <Button
                         type="button"

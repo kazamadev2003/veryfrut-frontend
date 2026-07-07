@@ -168,15 +168,25 @@ function UsersHistoryPageContent() {
   )
 
   useEffect(() => {
-    if (!selectedOrderIdFromQuery) {
-      setAutoOpenedOrderId(null)
-      return
+    let isActive = true
+
+    queueMicrotask(() => {
+      if (!isActive) return
+
+      if (!selectedOrderIdFromQuery) {
+        setAutoOpenedOrderId(null)
+        return
+      }
+      if (autoOpenedOrderId === selectedOrderIdFromQuery) return
+      const targetOrder = orders.find((order) => order.id === selectedOrderIdFromQuery)
+      if (!targetOrder) return
+      setDetailOrderId(targetOrder.id)
+      setAutoOpenedOrderId(targetOrder.id)
+    })
+
+    return () => {
+      isActive = false
     }
-    if (autoOpenedOrderId === selectedOrderIdFromQuery) return
-    const targetOrder = orders.find((order) => order.id === selectedOrderIdFromQuery)
-    if (!targetOrder) return
-    setDetailOrderId(targetOrder.id)
-    setAutoOpenedOrderId(targetOrder.id)
   }, [autoOpenedOrderId, orders, selectedOrderIdFromQuery])
 
   const closeDetailDialog = useCallback(() => {

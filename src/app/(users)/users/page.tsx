@@ -284,7 +284,9 @@ export default function UsersPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    queueMicrotask(() => {
+      void fetchData()
+    })
   }, [fetchData])
 
   // Ordenar productos

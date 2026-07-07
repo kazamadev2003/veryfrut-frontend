@@ -244,7 +244,9 @@ export function UsersDashboard() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    queueMicrotask(() => {
+      void fetchData()
+    })
   }, [fetchData])
 
   // Ordenar productos

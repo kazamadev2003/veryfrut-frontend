@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   BarChart3,
   ShoppingCart,
@@ -79,10 +80,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <img 
-                  src="https://res.cloudinary.com/demzflxgq/image/upload/v1770449756/ChatGPT_Image_7_feb_2026_02_25_57_a_ilotbf.svg" 
-                  alt="Veryfrut" 
-                  className="size-8 rounded-lg object-cover"
+                <Image
+                  src="https://res.cloudinary.com/demzflxgq/image/upload/v1770449756/ChatGPT_Image_7_feb_2026_02_25_57_a_ilotbf.svg"
+                  alt="Veryfrut"
+                  width={32}
+                  height={32}
+                  className="rounded-lg object-cover"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Veryfrut</span>

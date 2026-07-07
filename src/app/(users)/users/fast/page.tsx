@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from "react"
 import { Package, Plus, Trash2, Send } from "lucide-react"
 import { useProductsQuery } from "@/lib/api/hooks/useProduct"
 import { useCreateOrderMutation, useCheckOrderQuery } from "@/lib/api/hooks/useOrder"
@@ -35,40 +35,45 @@ const FastOrdersPage = () => {
   const [productSearch, setProductSearch] = useState("")
   const [selectedAreaId, setSelectedAreaId] = useState<number | undefined>()
   const [isCreatingOrder, setIsCreatingOrder] = useState(false)
-  const [areas, setAreas] = useState<Array<{id: number; name: string}>>([])
   const [blockedAreaIds, setBlockedAreaIds] = useState<Set<number>>(new Set())
   const [isPrecheckingAreas, setIsPrecheckingAreas] = useState(false)
   const [orderObservations, setOrderObservations] = useState<string>("")
   const [existingOrder, setExistingOrder] = useState<{id: number; status: string; areaId: number; totalAmount: number} | undefined>(undefined)
-  const [todayDate, setTodayDate] = useState("")
   const nextTableRowId = useRef(1)
   
   // Track orders created in this session to prevent duplicates
   const [sessionOrders, setSessionOrders] = useState<Set<number>>(new Set())
   const createOrderMutation = useCreateOrderMutation()
   
-  // Prevent hydration mismatches by only rendering after component is mounted
-  const [isMounted, setIsMounted] = useState(false)
-  
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   // Get current user and products
   const { data: currentUser } = useMeQuery()
   const { data: productsData, isLoading, error } = useProductsQuery()
   const products = useMemo(() => productsData?.items || [], [productsData?.items])
   
-  // Compute date on client only to avoid server/client render drift.
-  useEffect(() => {
+  const todayDate = useMemo(() => {
+    if (!isHydrated) return ""
     const formatter = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Lima",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     })
-    setTodayDate(formatter.format(new Date()))
-  }, [])
+    return formatter.format(new Date())
+  }, [isHydrated])
+
+  const areas = useMemo<Array<{ id: number; name: string }>>(() => {
+    const userAreas = (currentUser as (User & { areas?: Array<{ id: number; name: string }> }) | undefined)?.areas || []
+    if (userAreas.length > 0) return userAreas
+
+    const userAreaIds = currentUser?.areaIds || []
+    return userAreaIds.map((id) => ({ id, name: `Area ${id}` }))
+  }, [currentUser])
 
   // Check for existing order when area is selected
   const checkOrderData = useMemo(() => {
@@ -86,57 +91,30 @@ const FastOrdersPage = () => {
     Boolean(checkOrderData)
   ) as { data: CheckOrderResponse | undefined, isLoading: boolean }
 
-  // Load areas when user data is available
-  useEffect(() => {
-    console.log("[FastOrdersPage] currentUser:", currentUser)
-    console.log("[FastOrdersPage] User object keys:", currentUser ? Object.keys(currentUser) : 'No user')
-    
-    // Check if user has areas embedded in the response
-    const userAreas = (currentUser as User & {areas?: Array<{id: number; name: string}>})?.areas || []
-    const userAreaIds = currentUser?.areaIds || []
-    
-    console.log("[FastOrdersPage] userAreas (embedded):", userAreas)
-    console.log("[FastOrdersPage] userAreaIds:", userAreaIds)
-    
-    if (userAreas.length > 0) {
-      // Use embedded areas if available
-      console.log("[FastOrdersPage] Using embedded areas:", userAreas)
-      setAreas(userAreas)
-    } else if (userAreaIds.length > 0) {
-      console.log("[FastOrdersPage] User has areaIds but no embedded areas. areaIds:", userAreaIds)
-      // Could load areas by IDs here if needed
-      const mappedAreas = userAreaIds.map(id => ({ id, name: `Area ${id}` }))
-      setAreas(mappedAreas)
-    } else {
-      console.log("[FastOrdersPage] No areas found for user")
-      setAreas([])
-      setSelectedAreaId(undefined)
-    }
-  }, [currentUser])
-
   useEffect(() => {
     if (!todayDate || areas.length === 0) {
-      setIsPrecheckingAreas(false)
+      queueMicrotask(() => setSelectedAreaId(undefined))
       return
     }
 
     let isCancelled = false
-    setIsPrecheckingAreas(true)
+    void (async () => {
+      setIsPrecheckingAreas(true)
+      const results = await Promise.all(
+        areas.map(async (area) => {
+          try {
+            const response = await orderService.check({
+              areaId: area.id.toString(),
+              date: todayDate,
+            })
+            return { areaId: area.id, exists: response.exists }
+          } catch (error) {
+            console.error("[FastOrdersPage] Error checking area:", area.id, error)
+            return { areaId: area.id, exists: false }
+          }
+        })
+      )
 
-    void Promise.all(
-      areas.map(async (area) => {
-        try {
-          const response = await orderService.check({
-            areaId: area.id.toString(),
-            date: todayDate,
-          })
-          return { areaId: area.id, exists: response.exists }
-        } catch (error) {
-          console.error("[FastOrdersPage] Error checking area:", area.id, error)
-          return { areaId: area.id, exists: false }
-        }
-      })
-    ).then((results) => {
       if (isCancelled) return
 
       const apiBlocked = new Set<number>()
@@ -160,19 +138,12 @@ const FastOrdersPage = () => {
       })
 
       setIsPrecheckingAreas(false)
-    })
+    })()
 
     return () => {
       isCancelled = true
     }
   }, [areas, sessionOrders, todayDate])
-
-  // Reset existing order when there is no area selected
-  useEffect(() => {
-    if (!selectedAreaId || !currentUser?.id) {
-      setExistingOrder(undefined)
-    }
-  }, [selectedAreaId, currentUser])
 
   useEffect(() => {
     if (!selectedAreaId) return
@@ -180,13 +151,18 @@ const FastOrdersPage = () => {
 
     const firstAvailable = areas.find((area) => !blockedAreaIds.has(area.id))
     if (firstAvailable) {
-      setSelectedAreaId(firstAvailable.id)
+      queueMicrotask(() => setSelectedAreaId(firstAvailable.id))
     }
   }, [areas, blockedAreaIds, selectedAreaId])
   
   // Handle existing order found
   useEffect(() => {
-    if (existingOrderData && checkOrderData) {
+    let isActive = true
+
+    queueMicrotask(() => {
+      if (!isActive) return
+
+      if (existingOrderData && checkOrderData) {
       console.log('[FastOrdersPage] Existing order data from check:', existingOrderData)
       console.log('[FastOrdersPage] exists value:', existingOrderData.exists)
       console.log('[FastOrdersPage] order value:', existingOrderData.order)
@@ -227,10 +203,18 @@ const FastOrdersPage = () => {
         // Set to undefined to let fallback potentially find it
         setExistingOrder(undefined)
       }
+    } else if (!selectedAreaId || !currentUser?.id) {
+      setExistingOrder(undefined)
     } else if (!existingOrderData && checkOrderData && !isCheckingOrder) {
       console.log('[FastOrdersPage] No order data returned from check')
     }
-  }, [existingOrderData, checkOrderData, isCheckingOrder, selectedAreaId])
+
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [checkOrderData, currentUser?.id, existingOrderData, isCheckingOrder, selectedAreaId])
 
   // Handle errors
   if (error) {
@@ -498,7 +482,7 @@ const FastOrdersPage = () => {
     } finally {
       setIsCreatingOrder(false)
     }
-  }, [areas, blockedAreaIds, createOrderMutation, currentUser?.id, existingOrder, orderObservations, router, selectedAreaId, sessionOrders, tableProducts])
+  }, [areas, blockedAreaIds, createOrderMutation, currentUser, existingOrder, orderObservations, router, selectedAreaId, sessionOrders, tableProducts])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -522,7 +506,7 @@ const FastOrdersPage = () => {
     totalPrice: 0 // Price calculation removed from frontend
   }), [tableProducts])
 
-  if (!isMounted) {
+  if (!isHydrated) {
     return (
       <div className="min-h-screen bg-gray-50" />
     )

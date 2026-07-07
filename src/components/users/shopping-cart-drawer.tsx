@@ -202,19 +202,23 @@ export function ShoppingCartDrawer({
   // Cargar áreas disponibles
   useEffect(() => {
     if (isOpen) {
-      fetchAreas()
+      queueMicrotask(() => {
+        void fetchAreas()
+      })
     }
   }, [fetchAreas, isOpen])
 
   useEffect(() => {
-    setQuantityInputs((prev) => {
-      const next: Record<string, string> = {}
-      for (const item of cart) {
-        const key = getCartItemKey(item)
-        const isEditingThisItem = editingQuantityKey === key
-        next[key] = isEditingThisItem && prev[key] !== undefined ? prev[key] : formatQuantity(item.quantity)
-      }
-      return next
+    queueMicrotask(() => {
+      setQuantityInputs((prev) => {
+        const next: Record<string, string> = {}
+        for (const item of cart) {
+          const key = getCartItemKey(item)
+          const isEditingThisItem = editingQuantityKey === key
+          next[key] = isEditingThisItem && prev[key] !== undefined ? prev[key] : formatQuantity(item.quantity)
+        }
+        return next
+      })
     })
   }, [cart, editingQuantityKey, getCartItemKey])
 
@@ -226,7 +230,7 @@ export function ShoppingCartDrawer({
     if (blockedAreaIds.has(asNumber)) {
       const firstAvailable = areas.find((a) => !blockedAreaIds.has(a.id))
       if (firstAvailable) {
-        setSelectedAreaId(firstAvailable.id.toString())
+        queueMicrotask(() => setSelectedAreaId(firstAvailable.id.toString()))
         toast.error("Esa área ya tiene un pedido hoy. Selecciona otra área.")
       }
     }
