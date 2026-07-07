@@ -226,8 +226,6 @@ export default function OrderHistoryDetailPage() {
     const selected = productUnitOptions.find((option) => option.key === selectedKey)
     if (!selected) return
 
-    const step = 0.25
-
     setAddedItems((prev) => [
       ...prev,
       {
@@ -237,7 +235,7 @@ export default function OrderHistoryDetailPage() {
         imageUrl: selected.imageUrl,
         unitMeasurementId: selected.unitMeasurementId,
         unitName: selected.unitName,
-        quantity: String(step),
+        quantity: "0",
         price: selected.price,
       },
     ])
@@ -258,8 +256,8 @@ export default function OrderHistoryDetailPage() {
       prev.map((item) => {
         if (item.tempId !== tempId) return item
         const current = Number.parseFloat((item.quantity || fallback).replace(",", "."))
-        const base = Number.isFinite(current) ? current : Number.parseFloat(fallback) || 0.25
-        const next = Math.max(0.25, Math.round((base + delta) * 100) / 100)
+        const base = Number.isFinite(current) ? current : Number.parseFloat(fallback) || 0
+        const next = Math.max(0, Math.round((base + delta) * 100) / 100)
         return { ...item, quantity: String(next) }
       })
     )
@@ -624,7 +622,7 @@ export default function OrderHistoryDetailPage() {
                               </Button>
                               <Input
                                 type="number"
-                                min="0.001"
+                                min="0"
                                 step="0.25"
                                 value={draftQuantities[item.id] ?? String(item.quantity)}
                                 onChange={(event) =>
@@ -706,7 +704,7 @@ export default function OrderHistoryDetailPage() {
                               </Button>
                               <Input
                                 type="number"
-                                min="0.001"
+                                min="0"
                                 step="0.25"
                                 value={item.quantity}
                                 onChange={(event) =>

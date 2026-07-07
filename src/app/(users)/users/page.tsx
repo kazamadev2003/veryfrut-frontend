@@ -265,12 +265,23 @@ export default function UsersPage() {
         axiosInstance.get("/categories"),
       ])
 
-      const fetchedProducts: Product[] = Array.isArray(productsRes.data) ? productsRes.data : []
+      const productPayload = productsRes.data
+      const fetchedProducts: Product[] = Array.isArray(productPayload)
+        ? productPayload
+        : Array.isArray(productPayload?.items)
+          ? productPayload.items
+          : []
       const normalizedProducts = fetchedProducts.map((product) => ({
         ...product,
         imageUrl: getSafeImageSrc(product.imageUrl),
+        productUnits: Array.isArray(product.productUnits) ? product.productUnits : [],
       }))
-      const fetchedCategories: Category[] = Array.isArray(categoriesRes.data) ? categoriesRes.data : []
+      const categoryPayload = categoriesRes.data
+      const fetchedCategories: Category[] = Array.isArray(categoryPayload)
+        ? categoryPayload
+        : Array.isArray(categoryPayload?.items)
+          ? categoryPayload.items
+          : []
 
       setProducts(normalizedProducts)
       setFilteredProducts(normalizedProducts)

@@ -71,7 +71,7 @@ const FastOrdersPage = () => {
     const userAreas = (currentUser as (User & { areas?: Array<{ id: number; name: string }> }) | undefined)?.areas || []
     if (userAreas.length > 0) return userAreas
 
-    const userAreaIds = currentUser?.areaIds || []
+    const userAreaIds = Array.isArray(currentUser?.areaIds) ? currentUser.areaIds : []
     return userAreaIds.map((id) => ({ id, name: `Area ${id}` }))
   }, [currentUser])
 
@@ -229,7 +229,7 @@ const FastOrdersPage = () => {
         key: `${product.id}__${unit.id}`,
         productId: product.id,
         productUnitId: unit.id,
-        label: `${product.name} - ${unit.unitMeasurement.name}`,
+        label: `${product.name} - ${unit.unitMeasurement?.name ?? "Unidad"}`,
       }))
     })
   }, [products])
@@ -743,7 +743,7 @@ const FastOrdersPage = () => {
                                 <SelectContent>
                                   {product.productUnits?.map((unit) => (
                                     <SelectItem key={unit.id} value={unit.id.toString()}>
-                                      {unit.unitMeasurement.name}
+                                      {unit.unitMeasurement?.name ?? "Unidad"}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

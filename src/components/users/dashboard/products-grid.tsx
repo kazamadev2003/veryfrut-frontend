@@ -232,9 +232,27 @@ export function UsersDashboard() {
         axiosInstance.get("/products"),
         axiosInstance.get("/categories"),
       ])
-      setProducts(productsRes.data)
-      setFilteredProducts(productsRes.data)
-      setCategories(categoriesRes.data)
+      const productPayload = productsRes.data
+      const nextProducts: Product[] = Array.isArray(productPayload)
+        ? productPayload
+        : Array.isArray(productPayload?.items)
+          ? productPayload.items
+          : []
+      const categoryPayload = categoriesRes.data
+      const nextCategories: Category[] = Array.isArray(categoryPayload)
+        ? categoryPayload
+        : Array.isArray(categoryPayload?.items)
+          ? categoryPayload.items
+          : []
+
+      const normalizedProducts = nextProducts.map((product) => ({
+        ...product,
+        productUnits: Array.isArray(product.productUnits) ? product.productUnits : [],
+      }))
+
+      setProducts(normalizedProducts)
+      setFilteredProducts(normalizedProducts)
+      setCategories(nextCategories)
     } catch (error) {
       console.error("Error cargando productos:", error)
       toast.error("Error al cargar productos")

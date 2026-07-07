@@ -69,6 +69,30 @@ const QUANTITY_LIMITS = {
   STEP: 0.25,
 } as const
 
+const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(["res.cloudinary.com"])
+const IMAGE_PLACEHOLDER = "/placeholder.svg"
+
+function getSafeImageSrc(value?: string | null) {
+  const src = value?.trim()
+  if (!src) return IMAGE_PLACEHOLDER
+
+  if (src.startsWith("/") && !src.startsWith("//")) {
+    return src
+  }
+  if (!src.includes("://") && !src.startsWith("data:")) {
+    return `/${src.replace(/^\.?\/+/, "")}`
+  }
+
+  try {
+    const parsed = new URL(src)
+    if (!["http:", "https:"].includes(parsed.protocol)) return IMAGE_PLACEHOLDER
+    if (!ALLOWED_REMOTE_IMAGE_HOSTS.has(parsed.hostname)) return IMAGE_PLACEHOLDER
+    return src
+  } catch {
+    return IMAGE_PLACEHOLDER
+  }
+}
+
 function formatQuantity(quantity: number): string {
   if (quantity % 1 === 0) {
     return quantity.toFixed(0)
@@ -127,7 +151,7 @@ export function ShoppingCartDrawer({
     const query = productSearch.trim().toLowerCase()
     if (!query) return availableProducts.slice(0, 12)
     return availableProducts
-      .filter((product) => `${product.name} ${product.description}`.toLowerCase().includes(query))
+      .filter((product) => `${product.name} ${product.description || ""}`.toLowerCase().includes(query))
       .slice(0, 12)
   }, [availableProducts, productSearch])
 
@@ -302,7 +326,7 @@ export function ShoppingCartDrawer({
           productName: item.name,
           quantity: item.quantity,
           unitName:
-            item.productUnits.find((unit) => unit.unitMeasurement.id === item.selectedUnitId)?.unitMeasurement.name ??
+            (Array.isArray(item.productUnits) ? item.productUnits : []).find((unit) => unit.unitMeasurement?.id === item.selectedUnitId)?.unitMeasurement.name ??
             "Unidad",
         })),
       }
@@ -361,7 +385,7 @@ export function ShoppingCartDrawer({
           productName: item.name,
           quantity: item.quantity,
           unitName:
-            item.productUnits.find((unit) => unit.unitMeasurement.id === item.selectedUnitId)?.unitMeasurement.name ??
+            (Array.isArray(item.productUnits) ? item.productUnits : []).find((unit) => unit.unitMeasurement?.id === item.selectedUnitId)?.unitMeasurement.name ??
             "Unidad",
         })),
       }
@@ -399,7 +423,7 @@ export function ShoppingCartDrawer({
     const product = availableProducts.find((item) => item.id === productId)
     if (!product) return
 
-    const firstUnitId = product.productUnits[0]?.unitMeasurement.id
+    const firstUnitId = (Array.isArray(product.productUnits) ? product.productUnits : [])[0]?.unitMeasurement?.id
     setNewProductId(productId)
     setNewSelectedUnitId(firstUnitId ? firstUnitId.toString() : "")
     setProductSearch(product.name)
@@ -565,9 +589,9 @@ export function ShoppingCartDrawer({
                     <SelectValue placeholder="Unidad" />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectedNewProduct.productUnits.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.unitMeasurement.id.toString()}>
-                        {unit.unitMeasurement.name}
+                    {(Array.isArray(selectedNewProduct.productUnits) ? selectedNewProduct.productUnits : []).map((unit) => (
+                      <SelectItem key={unit.id} value={(unit.unitMeasurement?.id ?? unit.unitMeasurementId).toString()}>
+                        {unit.unitMeasurement?.name ?? "Unidad"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -595,7 +619,7 @@ export function ShoppingCartDrawer({
                   <div className="flex items-start gap-3">
                     <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
                       <Image
-                        src={item.imageUrl || "/placeholder.svg"}
+                        src={getSafeImageSrc(item.imageUrl)}
                         alt={item.name}
                         fill
                         className="object-cover"
@@ -624,9 +648,9 @@ export function ShoppingCartDrawer({
                         <SelectValue placeholder="Unidad" />
                       </SelectTrigger>
                       <SelectContent>
-                        {item.productUnits.map((unit) => (
-                          <SelectItem key={unit.id} value={unit.unitMeasurement.id.toString()}>
-                            {unit.unitMeasurement.name}
+                        {(Array.isArray(item.productUnits) ? item.productUnits : []).map((unit) => (
+                          <SelectItem key={unit.id} value={(unit.unitMeasurement?.id ?? unit.unitMeasurementId).toString()}>
+                            {unit.unitMeasurement?.name ?? "Unidad"}
                           </SelectItem>
                         ))}
                       </SelectContent>

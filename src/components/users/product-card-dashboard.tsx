@@ -60,6 +60,30 @@ const QUANTITY_LIMITS = {
   DECIMALS: 2,
 } as const
 
+const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(["res.cloudinary.com"])
+const IMAGE_PLACEHOLDER = "/placeholder.svg"
+
+function getSafeImageSrc(value?: string | null) {
+  const src = value?.trim()
+  if (!src) return IMAGE_PLACEHOLDER
+
+  if (src.startsWith("/") && !src.startsWith("//")) {
+    return src
+  }
+  if (!src.includes("://") && !src.startsWith("data:")) {
+    return `/${src.replace(/^\.?\/+/, "")}`
+  }
+
+  try {
+    const parsed = new URL(src)
+    if (!["http:", "https:"].includes(parsed.protocol)) return IMAGE_PLACEHOLDER
+    if (!ALLOWED_REMOTE_IMAGE_HOSTS.has(parsed.hostname)) return IMAGE_PLACEHOLDER
+    return src
+  } catch {
+    return IMAGE_PLACEHOLDER
+  }
+}
+
 // Componente de calificación
 const StarRating = ({ rating }: { rating: number }) => {
   const safeRating = Math.min(5, Math.max(0, rating || 5))
@@ -157,8 +181,14 @@ export function ProductCardDashboard({
   disabled = false,
   className,
 }: ProductCardDashboardProps) {
+  const productUnits = useMemo(
+    () => (Array.isArray(product.productUnits) ? product.productUnits : []),
+    [product.productUnits]
+  )
+  const safePrice = Number.isFinite(Number(product.price)) ? Number(product.price) : 0
+  const safeStock = Number.isFinite(Number(product.stock)) ? Number(product.stock) : 0
   const [selectedUnitId, setSelectedUnitId] = useState<number>(
-    product.productUnits.length > 0 ? product.productUnits[0].unitMeasurement.id : 0,
+    productUnits[0]?.unitMeasurement?.id ?? 0,
   )
   const [isHovered, setIsHovered] = useState(false)
 
@@ -174,14 +204,14 @@ export function ProductCardDashboard({
 
   // Valores memoizados
   const selectedUnitName = useMemo(() => {
-    const selectedUnit = product.productUnits.find((pu) => pu.unitMeasurement.id === selectedUnitId)
+    const selectedUnit = productUnits.find((pu) => pu.unitMeasurement?.id === selectedUnitId)
     return selectedUnit?.unitMeasurement.name || "Unidad"
-  }, [product.productUnits, selectedUnitId])
+  }, [productUnits, selectedUnitId])
 
-  const isOutOfStock = useMemo(() => product.stock <= 0, [product.stock])
+  const isOutOfStock = useMemo(() => safeStock <= 0, [safeStock])
   const isAddDisabled = useMemo(
-    () => disabled || product.productUnits.length === 0 || quantity <= 0 || isOutOfStock,
-    [disabled, product.productUnits.length, quantity, isOutOfStock],
+    () => disabled || productUnits.length === 0 || quantity <= 0 || isOutOfStock,
+    [disabled, productUnits.length, quantity, isOutOfStock],
   )
 
   // Manejador para agregar al carrito
@@ -190,12 +220,15 @@ export function ProductCardDashboard({
 
     const cartProduct: CartProduct = {
       ...product,
+      price: safePrice,
+      stock: safeStock,
+      productUnits,
       quantity,
       selectedUnitId,
     }
 
     onAddToCart(cartProduct, selectedUnitId)
-  }, [product, quantity, selectedUnitId, onAddToCart])
+  }, [onAddToCart, product, productUnits, quantity, safePrice, safeStock, selectedUnitId])
 
   return (
     <Card
@@ -212,7 +245,7 @@ export function ProductCardDashboard({
       {/* Imagen del producto */}
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-white">
         <Image
-          src={product.imageUrl || "/placeholder.svg?height=300&width=400"}
+          src={getSafeImageSrc(product.imageUrl)}
           alt={product.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -227,7 +260,7 @@ export function ProductCardDashboard({
               SIN STOCK
             </Badge>
           )}
-          {!isOutOfStock && product.stock < 5 && (
+          {!isOutOfStock && safeStock < 5 && (
             <Badge className="bg-orange-500 text-white font-semibold text-xs px-3 py-1 shadow-md">
               ÚLTIMO STOCK
             </Badge>
@@ -258,9 +291,9 @@ export function ProductCardDashboard({
               <SelectValue placeholder="Selecciona unidad" />
             </SelectTrigger>
             <SelectContent>
-              {product.productUnits.map((pu) => (
-                <SelectItem key={pu.id} value={pu.unitMeasurement.id.toString()}>
-                  <span className="font-medium">{pu.unitMeasurement.name}</span>
+              {productUnits.map((pu) => (
+                <SelectItem key={pu.id} value={(pu.unitMeasurement?.id ?? pu.unitMeasurementId).toString()}>
+                  <span className="font-medium">{pu.unitMeasurement?.name ?? "Unidad"}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -334,11 +367,11 @@ export function ProductCardDashboard({
         </Button>
 
         {/* Información adicional */}
-        {product.stock > 0 && product.stock < 10 && (
+        {safeStock > 0 && safeStock < 10 && (
           <div className="w-full flex items-center gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200">
             <Info className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
             <span className="text-xs text-amber-700 font-medium">
-              Solo {product.stock} unidades disponibles
+              Solo {safeStock} unidades disponibles
             </span>
           </div>
         )}
