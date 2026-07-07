@@ -336,7 +336,7 @@ export default function OrderHistoryDetailPage() {
       setAddedItems([])
       setDraftObservationTouched(false)
       toast.success("Pedido actualizado")
-      router.push(`/users/history?orderId=${order.id}&print=1`)
+      router.push(`/users/history?orderId=${order.id}`)
     } catch (error) {
       console.error("[OrderHistoryDetailPage] Error updating order:", error)
       toast.error("No se pudo actualizar el pedido")
@@ -584,7 +584,7 @@ export default function OrderHistoryDetailPage() {
                   {visibleExistingItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         <div className="relative hidden h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white sm:block">
@@ -674,77 +674,77 @@ export default function OrderHistoryDetailPage() {
                     <p className="text-sm text-gray-500">No hay items registrados en esta orden.</p>
                   )}
                     {canEdit &&
-                     addedItems.map((item) => (
-                       <div
-                         key={item.tempId}
-                         className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                       >
-                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                           <div className="relative hidden h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white sm:block">
-                            <Image
-                              src={getSafeImageSrc(item.imageUrl)}
-                              alt={item.productName}
-                              fill
-                              className="object-cover"
-                              sizes="40px"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{item.productName}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                              <span className="text-xs text-gray-500">Cantidad:</span>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => adjustAddedQuantity(item.tempId, item.quantity, -0.25)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.25"
-                                value={item.quantity}
-                                onChange={(event) =>
-                                  setAddedItems((prev) =>
-                                    prev.map((current) =>
-                                      current.tempId === item.tempId
-                                        ? { ...current, quantity: event.target.value }
-                                        : current
-                                    )
-                                  )
-                                }
-                                className="h-8 w-20 text-sm sm:w-28"
+                      addedItems.map((item) => (
+                        <div
+                          key={item.tempId}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <div className="relative hidden h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-white sm:block">
+                              <Image
+                                src={getSafeImageSrc(item.imageUrl)}
+                                alt={item.productName}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
                               />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => adjustAddedQuantity(item.tempId, item.quantity, 0.25)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                              <span className="text-xs text-gray-500">{item.unitName}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-gray-900">{item.productName}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-gray-500">Cantidad:</span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => adjustAddedQuantity(item.tempId, item.quantity, -0.25)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.25"
+                                  value={item.quantity}
+                                  onChange={(event) =>
+                                    setAddedItems((prev) =>
+                                      prev.map((current) =>
+                                        current.tempId === item.tempId
+                                          ? { ...current, quantity: event.target.value }
+                                          : current,
+                                      ),
+                                    )
+                                  }
+                                  className="h-8 w-20 text-sm sm:w-28"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => adjustAddedQuantity(item.tempId, item.quantity, 0.25)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-xs text-gray-500">{item.unitName}</span>
+                              </div>
                             </div>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setAddedItems((prev) => prev.filter((current) => current.tempId !== item.tempId))
+                            }
+                            className="shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            aria-label="Quitar producto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setAddedItems((prev) => prev.filter((current) => current.tempId !== item.tempId))
-                          }
-                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          aria-label="Quitar producto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
                 </div>
                 <div className="mt-4 space-y-1">
                   <p className="text-xs font-semibold text-gray-500">Observacion</p>
