@@ -266,9 +266,13 @@ function EditUserFormPanel({
         phone: formData.phone.trim() || undefined,
         address: formData.address.trim() || undefined,
         role: formData.role,
-        areaIds: formData.areaIds,
         password: formData.password.trim() || undefined,
       };
+
+      if (formData.areaIds.length > 0) {
+        payload.areaIds = formData.areaIds;
+      }
+
       const updated = await updateUserMutation.mutateAsync(payload);
       if (!updated) throw new Error('No se pudo actualizar el usuario');
       toast.success('Usuario actualizado');
