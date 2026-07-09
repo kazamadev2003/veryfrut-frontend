@@ -303,13 +303,13 @@ function EditUserFormPanel({
           </div>
         </div>
 
-        {userError && (
+        {Boolean(userError) && (
           <Card className='mb-6 border-red-200 bg-red-50'>
             <CardContent className='pt-6 text-sm text-red-700'>No se pudo cargar el usuario.</CardContent>
           </Card>
         )}
 
-        {companiesError && (
+        {Boolean(companiesError) && (
           <Card className='mb-6 border-amber-200 bg-amber-50'>
             <CardContent className='pt-6 text-sm text-amber-800'>
               No se pudieron cargar las empresas.
@@ -473,7 +473,7 @@ function EditUserFormPanel({
                   <Label className='text-sm font-semibold text-slate-700'>
                     Areas asociadas *
                   </Label>
-                  {areasError && (
+                  {Boolean(areasError) && (
                     <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
                       Error al cargar areas
                     </div>
