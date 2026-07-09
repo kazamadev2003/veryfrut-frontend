@@ -32,8 +32,14 @@ interface EditUserForm {
 }
 
 function buildInitialForm(user: User | undefined, allAreas: Area[]): EditUserForm {
-  const userAreaIds = Array.isArray(user?.areaIds) ? user.areaIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)) : [];
   const userAreas = (user as { areas?: Array<{ id: number; companyId?: number }> } | undefined)?.areas;
+  const areaIdsFromRelations = Array.isArray(userAreas)
+    ? userAreas.map((area) => Number(area.id)).filter((id) => Number.isFinite(id))
+    : [];
+  const areaIdsFromField = Array.isArray(user?.areaIds)
+    ? user.areaIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))
+    : [];
+  const userAreaIds = Array.from(new Set([...areaIdsFromField, ...areaIdsFromRelations]));
 
   const companyIdFromRelation = Array.isArray(userAreas)
     ? (() => {
