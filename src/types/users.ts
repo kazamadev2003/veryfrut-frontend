@@ -15,6 +15,7 @@ export interface User {
   phone?: string;
   address?: string;
   role: UserRole;
+  companyId?: number;
   areaIds: number[];
   createdAt: string;
   updatedAt: string;
@@ -52,7 +53,9 @@ export interface UpdateUserDto {
   phone?: string;
   address?: string;
   role?: UserRole;
+  companyId?: number;
   areaIds?: number[];
+  password?: string;
 }
 
 /**
