@@ -226,11 +226,11 @@ function EditUserFormPanel({
       toast.error('El email es requerido');
       return false;
     }
-    if (!formData.companyId) {
+    if (formData.role !== 'admin' && !formData.companyId) {
       toast.error('La empresa es requerida');
       return false;
     }
-    if (formData.areaIds.length === 0) {
+    if (formData.role !== 'admin' && formData.areaIds.length === 0) {
       toast.error('Debe quedar al menos un area asignada');
       return false;
     }
@@ -411,7 +411,7 @@ function EditUserFormPanel({
 
                 <div className='space-y-2'>
                   <Label htmlFor='companyId' className='text-sm font-semibold text-slate-700'>
-                    Empresa *
+                    Empresa {formData.role === 'admin' ? '(opcional para admin)' : '*'}
                   </Label>
                   <Select
                     value={formData.companyId ? formData.companyId.toString() : ''}
@@ -479,7 +479,7 @@ function EditUserFormPanel({
 
                 <div className='space-y-3'>
                   <Label className='text-sm font-semibold text-slate-700'>
-                    Areas asociadas *
+                    Areas asociadas {formData.role === 'admin' ? '(opcional para admin)' : '*'}
                   </Label>
                   {Boolean(areasError) && (
                     <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
