@@ -32,11 +32,14 @@ interface EditUserForm {
 }
 
 function buildInitialForm(user: User | undefined, allAreas: Area[]): EditUserForm {
-  const userAreaIds = Array.isArray(user?.areaIds) ? user.areaIds : [];
+  const userAreaIds = Array.isArray(user?.areaIds) ? user.areaIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)) : [];
   const userAreas = (user as { areas?: Array<{ id: number; companyId?: number }> } | undefined)?.areas;
 
   const companyIdFromRelation = Array.isArray(userAreas)
-    ? userAreas.find((area) => typeof area.companyId === 'number')?.companyId ?? null
+    ? (() => {
+        const companyId = Number(userAreas.find((area) => area.companyId !== undefined)?.companyId);
+        return Number.isFinite(companyId) ? companyId : null;
+      })()
     : null;
 
   const companyIdFromAreas =
@@ -257,7 +260,6 @@ function EditUserFormPanel({
         phone: formData.phone.trim() || undefined,
         address: formData.address.trim() || undefined,
         role: formData.role,
-        companyId: formData.companyId ?? undefined,
         areaIds: formData.areaIds,
         password: formData.password.trim() || undefined,
       };

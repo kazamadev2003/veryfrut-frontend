@@ -53,7 +53,6 @@ export interface UpdateUserDto {
   phone?: string;
   address?: string;
   role?: UserRole;
-  companyId?: number;
   areaIds?: number[];
   password?: string;
 }
