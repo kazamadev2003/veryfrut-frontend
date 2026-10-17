@@ -71,6 +71,19 @@ const QUANTITY_LIMITS = {
 
 const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(["res.cloudinary.com"])
 const IMAGE_PLACEHOLDER = "/placeholder.svg"
+const ORDER_CLOSING_HOUR = 21
+
+function hasOrderWindowClosed(date: Date): boolean {
+  const hourInPeru = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Lima",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(date),
+  )
+
+  return hourInPeru >= ORDER_CLOSING_HOUR
+}
 
 function getSafeImageSrc(value?: string | null) {
   const src = value?.trim()
@@ -127,7 +140,9 @@ export function ShoppingCartDrawer({
   const [observation, setObservation] = useState("")
   const [isLoadingAreas, setIsLoadingAreas] = useState(false)
   const [isCheckingAreas, setIsCheckingAreas] = useState(false)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const createOrderMutation = useCreateOrderMutation()
+  const isOrderWindowClosed = hasOrderWindowClosed(currentTime)
   const todayDate = useMemo(() => {
     const formatter = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Lima",
@@ -141,6 +156,11 @@ export function ShoppingCartDrawer({
     () => areas.length > 0 && areas.every((a) => blockedAreaIds.has(a.id)),
     [areas, blockedAreaIds],
   )
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentTime(new Date()), 60_000)
+    return () => window.clearInterval(intervalId)
+  }, [])
 
   const getCartItemKey = useCallback(
     (item: Product) => item.cartItemId || `${item.id}-${item.selectedUnitId}`,
@@ -455,6 +475,11 @@ export function ShoppingCartDrawer({
   }, [newQuantity, newSelectedUnitId, onAddItem, selectedNewProduct])
 
   const handleSubmit = async () => {
+    if (isOrderWindowClosed) {
+      toast.error("El horario de pedidos ya cerró. Comunícate con el administrador al 987 801 148.")
+      return
+    }
+
     if (!selectedAreaId) {
       toast.error("Por favor selecciona un área")
       return
@@ -545,6 +570,12 @@ export function ShoppingCartDrawer({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {isOrderWindowClosed && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <p className="font-semibold">El horario de pedidos ya cerró.</p>
+              <p>Los pedidos se reciben hasta las 9:00 p. m. Comunícate con el administrador al 987 801 148.</p>
+            </div>
+          )}
           <div className="mb-4 space-y-2 rounded-lg border border-gray-200 p-3">
             <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">Agregar producto</label>
             <div className="relative">
@@ -806,7 +837,8 @@ export function ShoppingCartDrawer({
                     blockedAreaIds.has(Number(selectedAreaId)) ||
                     isLoadingAreas ||
                     isCheckingAreas ||
-                    allAreasBlocked
+                    allAreasBlocked ||
+                    isOrderWindowClosed
                   }
                 >
                   {isSubmitting ? (
