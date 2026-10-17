@@ -75,20 +75,20 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [currentTime, setCurrentTime] = React.useState(() => new Date())
-  const peruHour = Number(
+  const peruTime24 =
     new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Lima",
-      hour: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
       hourCycle: "h23",
-    }).format(currentTime),
-  )
+    }).format(currentTime)
   const currentPeruTime = new Intl.DateTimeFormat("es-PE", {
     timeZone: "America/Lima",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   }).format(currentTime)
-  const isOrderWindowClosed = peruHour >= 21
+  const isOrderWindowClosed = peruTime24 < "06:00" || peruTime24 >= "21:30"
 
   React.useEffect(() => {
     const intervalId = window.setInterval(() => setCurrentTime(new Date()), 60_000)
@@ -126,12 +126,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <div className="mx-2 mb-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm group-data-[collapsible=icon]:hidden">
           <div className="flex items-center gap-2 font-semibold text-green-900">
             <Clock3 className="h-4 w-4" />
-            Horario de pedidos
+            Horario de recepción de pedidos
           </div>
-          <p className="mt-1 text-green-800">Recibimos pedidos hasta las 9:00 p. m.</p>
+          <p className="mt-1 text-green-800">Recibimos pedidos de 6:00 a. m. a 9:00 p. m.</p>
           <p className="mt-1 text-xs text-green-700">Hora actual en Perú: {currentPeruTime}</p>
           <p className={`mt-2 text-xs font-semibold ${isOrderWindowClosed ? "text-red-700" : "text-green-700"}`}>
-            {isOrderWindowClosed ? "Pedidos cerrados por hoy" : "Pedidos disponibles"}
+            {isOrderWindowClosed ? "La recepción se habilita a las 6:00 a. m." : "Recepción de pedidos disponible"}
           </p>
         </div>
       </SidebarContent>

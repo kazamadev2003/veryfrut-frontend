@@ -71,18 +71,19 @@ const QUANTITY_LIMITS = {
 
 const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(["res.cloudinary.com"])
 const IMAGE_PLACEHOLDER = "/placeholder.svg"
-const ORDER_CLOSING_HOUR = 21
+const ORDER_OPENING_TIME = "06:00"
+const ORDER_CLOSING_TIME = "21:30"
 
 function hasOrderWindowClosed(date: Date): boolean {
-  const hourInPeru = Number(
+  const timeInPeru =
     new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Lima",
-      hour: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
       hourCycle: "h23",
-    }).format(date),
-  )
+    }).format(date)
 
-  return hourInPeru >= ORDER_CLOSING_HOUR
+  return timeInPeru < ORDER_OPENING_TIME || timeInPeru >= ORDER_CLOSING_TIME
 }
 
 function getSafeImageSrc(value?: string | null) {
@@ -476,7 +477,7 @@ export function ShoppingCartDrawer({
 
   const handleSubmit = async () => {
     if (isOrderWindowClosed) {
-      toast.error("El horario de pedidos ya cerró. Comunícate con el administrador al 987 801 148.")
+      toast.error("La recepción de pedidos se habilita a las 6:00 a. m. Comunícate con el administrador al 987 801 148.")
       return
     }
 
@@ -572,8 +573,8 @@ export function ShoppingCartDrawer({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {isOrderWindowClosed && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <p className="font-semibold">El horario de pedidos ya cerró.</p>
-              <p>Los pedidos se reciben hasta las 9:00 p. m. Comunícate con el administrador al 987 801 148.</p>
+              <p className="font-semibold">La recepción de pedidos está cerrada.</p>
+              <p>La recepción de pedidos se habilita a las 6:00 a. m. Comunícate con el administrador al 987 801 148.</p>
             </div>
           )}
           <div className="mb-4 space-y-2 rounded-lg border border-gray-200 p-3">
