@@ -70,6 +70,7 @@ export interface Order {
   totalAmount: number;
   status: OrderStatus;
   observation?: string;
+  scheduledFor?: string;
   createdAt?: string;
   updatedAt?: string;
   User?: User;
@@ -114,6 +115,7 @@ export interface CreateOrderDto {
   totalAmount: number;
   status: OrderStatus;
   observation?: string;
+  scheduledFor?: string;
   orderItems: CreateOrderItemDto[];
 }
 
@@ -143,6 +145,25 @@ export interface CheckOrderDto {
 export interface CheckOrderResponse {
   exists: boolean;
   order?: Order;
+}
+
+export interface OrderFollowUpArea extends Area {
+  order: Order | null;
+}
+
+export interface OrderFollowUpUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  areas: OrderFollowUpArea[];
+}
+
+export interface OrderFollowUpResponse {
+  date: string;
+  users: OrderFollowUpUser[];
+  futureOrders: Order[];
 }
 
 /**

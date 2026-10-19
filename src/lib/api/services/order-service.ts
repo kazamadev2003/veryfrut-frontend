@@ -16,6 +16,7 @@ import {
   GetOrdersByDateRangeParams,
   PaginatedDeletedOrdersResponse,
   PaginatedOrdersResponse,
+  OrderFollowUpResponse,
 } from '@/types/order';
 
 // Re-exportar tipos
@@ -30,6 +31,7 @@ export type {
   GetOrdersByDateRangeParams,
   PaginatedDeletedOrdersResponse,
   PaginatedOrdersResponse,
+  OrderFollowUpResponse,
 };
 
 class OrderService {
@@ -292,6 +294,13 @@ class OrderService {
       }
       throw error;
     }
+  }
+
+  async getFollowUp(date: string): Promise<OrderFollowUpResponse> {
+    const response = await axiosInstance.get<OrderFollowUpResponse>('/orders/follow-up', {
+      params: { date },
+    });
+    return response.data;
   }
 
   /**

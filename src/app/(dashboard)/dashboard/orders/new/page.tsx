@@ -43,6 +43,7 @@ const AdminFastOrdersPage = () => {
   const [blockedAreaIds, setBlockedAreaIds] = useState<Set<number>>(new Set())
   const [isPrecheckingAreas, setIsPrecheckingAreas] = useState(false)
   const [orderObservations, setOrderObservations] = useState<string>("")
+  const [scheduledFor, setScheduledFor] = useState("")
   const [existingOrder, setExistingOrder] = useState<{id: number; status: string; areaId: number; totalAmount: number} | undefined>(undefined)
   
   // Track orders created in this session to prevent duplicates
@@ -77,6 +78,10 @@ const AdminFastOrdersPage = () => {
     })
     return formatter.format(new Date())
   }, [])
+
+  useEffect(() => {
+    setScheduledFor((current) => current || todayDate)
+  }, [todayDate])
 
   // Get selected user details
   const selectedUser = useMemo(() => {
@@ -115,20 +120,21 @@ const AdminFastOrdersPage = () => {
   }, [allAreas, selectedUser, selectedUserId])
 
   useEffect(() => {
-    if (!selectedUserId || !todayDate || areas.length === 0) {
+    if (!selectedUserId || !scheduledFor || areas.length === 0) {
       setIsPrecheckingAreas(false)
       return
     }
 
     let isCancelled = false
     setIsPrecheckingAreas(true)
+    setBlockedAreaIds(new Set())
 
     void Promise.all(
       areas.map(async (area) => {
         try {
           const response = await orderService.check({
             areaId: area.id.toString(),
-            date: todayDate,
+            date: scheduledFor,
           })
           return { areaId: area.id, exists: response.exists }
         } catch (error) {
@@ -146,11 +152,7 @@ const AdminFastOrdersPage = () => {
         }
       })
 
-      setBlockedAreaIds((prev) => {
-        const next = new Set(prev)
-        apiBlocked.forEach((areaId) => next.add(areaId))
-        return next
-      })
+      setBlockedAreaIds(apiBlocked)
 
       setSelectedAreaId((prev) => {
         const availableAreas = areas.filter((area) => !apiBlocked.has(area.id))
@@ -164,15 +166,15 @@ const AdminFastOrdersPage = () => {
     return () => {
       isCancelled = true
     }
-  }, [areas, selectedUserId, todayDate])
+  }, [areas, selectedUserId, scheduledFor])
 
   const checkOrderData = useMemo(() => {
     if (!selectedAreaId || !selectedUserId) return null
     return {
       areaId: selectedAreaId.toString(),
-      date: todayDate,
+      date: scheduledFor,
     }
-  }, [selectedAreaId, selectedUserId, todayDate])
+  }, [selectedAreaId, selectedUserId, scheduledFor])
 
   const { data: existingOrderData, isLoading: isCheckingOrder } = useCheckOrderQuery(
     checkOrderData,
@@ -183,7 +185,7 @@ const AdminFastOrdersPage = () => {
     if (!selectedAreaId || !selectedUserId) {
       setExistingOrder(undefined)
     }
-  }, [selectedAreaId, selectedUserId])
+  }, [selectedAreaId, selectedUserId, scheduledFor])
 
   useEffect(() => {
     if (!selectedAreaId) return
@@ -359,20 +361,20 @@ const AdminFastOrdersPage = () => {
     }
 
     // Check if there's already an order for this area in the current session
-    const orderKey = `${selectedUserId}-${selectedAreaId}`
+    const orderKey = `${selectedUserId}-${selectedAreaId}-${scheduledFor}`
     if (sessionOrderKeys.has(orderKey)) {
-      toast.error("Ya existe un pedido para esta area hoy. Solo se permite un pedido por dia y por area.")
+      toast.error("Ya existe un pedido para esta área en la fecha seleccionada.")
       return
     }
 
     if (blockedAreaIds.has(selectedAreaId)) {
-      toast.error("Esta area ya tiene pedido hoy y esta bloqueada.")
+      toast.error("Esta área ya tiene pedido en la fecha seleccionada y está bloqueada.")
       return
     }
     
     // Check if there's an existing order that's not in 'created' status
     if (existingOrder && existingOrder.status !== 'created') {
-      toast.error(`Ya existe una orden con estado "${existingOrder.status}" para esta area hoy. Solo se puede hacer un pedido por dia y por area.`)
+      toast.error(`Ya existe una orden con estado "${existingOrder.status}" para esta área en la fecha seleccionada.`)
       return
     }
     
@@ -383,7 +385,7 @@ const AdminFastOrdersPage = () => {
     
     // If there's an existing order with status 'unknown' (when backend only returns exists: true)
     if (existingOrder && existingOrder.status === 'unknown') {
-      toast.error("Ya existe un pedido para esta area hoy. Solo se permite un pedido por dia y por area.")
+      toast.error("Ya existe un pedido para esta área en la fecha seleccionada.")
       return
     }
 
@@ -416,6 +418,7 @@ const AdminFastOrdersPage = () => {
         totalAmount: tableProducts.reduce((sum, tp) => sum + (tp.quantity * (tp.product.price || 0)), 0),
         status: 'created',
         observation: orderObservations.trim() || undefined,
+        scheduledFor,
         orderItems: orderItems,
       };
 
@@ -513,7 +516,7 @@ const AdminFastOrdersPage = () => {
 
         <main className="flex-1 p-4 sm:p-6">
           {/* User, Area and Product Selection */}
-          <div className="mb-6 grid gap-5 grid-cols-1 sm:grid-cols-3">
+          <div className="mb-6 grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
             {/* User Selection */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <label className="text-sm font-semibold text-gray-700 block mb-3 flex items-center gap-2">
@@ -551,6 +554,19 @@ const AdminFastOrdersPage = () => {
               </Select>
             </div>
 
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <label htmlFor="scheduled-for" className="text-sm font-semibold text-gray-700 block mb-3">Fecha de recepción</label>
+              <Input
+                id="scheduled-for"
+                type="date"
+                value={scheduledFor}
+                min={todayDate}
+                onChange={(event) => setScheduledFor(event.target.value)}
+                className="rounded-lg border-gray-300"
+              />
+              <p className="mt-2 text-xs text-gray-500">Puedes programar pedidos para hoy o fechas futuras.</p>
+            </div>
+
             {/* Area Selection */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <label className="text-sm font-semibold text-gray-700 block mb-3">Area</label>
@@ -580,7 +596,7 @@ const AdminFastOrdersPage = () => {
                 </SelectContent>
               </Select>
               {selectedAreaId && blockedAreaIds.has(selectedAreaId) && (
-                <p className="mt-2 text-xs text-red-600">Bloqueada: esta area ya tiene pedido hoy.</p>
+                <p className="mt-2 text-xs text-red-600">Bloqueada: esta área ya tiene pedido para la fecha seleccionada.</p>
               )}
               {isPrecheckingAreas && (
                 <p className="mt-2 text-xs text-blue-600">Verificando bloqueo de areas...</p>

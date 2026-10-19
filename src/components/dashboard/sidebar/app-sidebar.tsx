@@ -40,6 +40,11 @@ const data = {
       icon: ShoppingCart,
     },
     {
+      title: "Seguimiento de pedidos",
+      url: "/dashboard/orders/follow-up",
+      icon: Users,
+    },
+    {
       title: "Productos",
       url: "/dashboard/products",
       icon: Apple,
