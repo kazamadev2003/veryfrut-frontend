@@ -477,7 +477,7 @@ export function ShoppingCartDrawer({
 
   const handleSubmit = async () => {
     if (isOrderWindowClosed) {
-      toast.error("La recepción de pedidos se habilita a las 6:00 a. m. Comunícate con el administrador al 987 801 148.")
+      toast.error("La recepción de pedidos por hoy está cerrada. Se habilitará mañana a las 6:00 a. m.")
       return
     }
 
