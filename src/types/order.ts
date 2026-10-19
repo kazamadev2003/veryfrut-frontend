@@ -60,6 +60,7 @@ export interface Area {
   company?: {
     id: number;
     name: string;
+    color?: string;
   };
 }
 
