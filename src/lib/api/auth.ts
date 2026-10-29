@@ -41,7 +41,7 @@ export function readAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-export function setAuthToken(token: string, days = 7) {
+export function setAuthToken(token: string, days = 30) {
   if (typeof window === 'undefined') {
     return;
   }

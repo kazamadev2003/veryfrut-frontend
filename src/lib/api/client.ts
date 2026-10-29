@@ -30,10 +30,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     // Manejar errores globales
-    if (error.response?.status === 401) {
-      // Token expirado - limpiar y redirigir si es necesario
+    if (error.response?.status === 401 && error.response?.data?.message === 'Token expired') {
+      // Solo una expiración confirmada debe cerrar la sesión.
       clearAuthToken();
-      // window.location.href = '/login'; // Descomentar segun necesites
     }
 
     return Promise.reject(error);
