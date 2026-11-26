@@ -26,9 +26,9 @@ interface DraftItem {
 
 function formatDate(date?: string) {
   if (!date) return 'N/A';
-  const parsed = new Date(date);
+  const parsed = new Date(`${date.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return 'N/A';
-  return parsed.toLocaleString('es-ES');
+  return parsed.toLocaleDateString('es-ES');
 }
 
 function toNonNegativeNumber(value: string) {
@@ -225,7 +225,7 @@ function EditOrderForm({ order }: { order: Order }) {
         <div>
           <h1 className='text-2xl font-bold'>Editar pedido #{order.id}</h1>
           <p className='text-sm text-muted-foreground'>
-            Cliente: {order.User?.firstName} {order.User?.lastName} | Fecha: {formatDate(order.createdAt)}
+            Cliente: {order.User?.firstName} {order.User?.lastName} | Fecha de recepción: {formatDate(order.scheduledFor ?? order.createdAt)}
           </p>
         </div>
         <Button variant='outline' onClick={() => router.push('/dashboard/orders')} className='w-full sm:w-auto'>

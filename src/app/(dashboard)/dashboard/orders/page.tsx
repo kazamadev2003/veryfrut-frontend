@@ -76,21 +76,15 @@ export default function OrdersPage() {
   });
   const deleteMutation = useDeleteOrderMutation();
 
-  const formatDate = (dateString?: string) => {
+  const formatScheduledDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString('es-ES', {
+    const date = new Date(`${dateString.slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     });
-    const timeStr = date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
-    return `${dateStr} ${timeStr}`;
   };
 
   const getOrderNumber = (index: number) => {
@@ -149,7 +143,7 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           areaName: order.area?.name || `Area ${order.areaId}`,
-          createdAt: order.createdAt,
+          scheduledFor: order.scheduledFor,
           observation: order.observation || '',
           items,
         }),
@@ -351,8 +345,8 @@ export default function OrdersPage() {
                             <p className='text-muted-foreground'>{order.User?.email || 'N/A'}</p>
                           </div>
                           <div>
-                            <p className='text-muted-foreground'>Fecha</p>
-                            <p>{formatDate(order.createdAt || '')}</p>
+                            <p className='text-muted-foreground'>Fecha de recepción</p>
+                            <p>{formatScheduledDate(order.scheduledFor ?? order.createdAt)}</p>
                           </div>
                           <div>
                             <p className='text-muted-foreground'>Area</p>
@@ -419,7 +413,7 @@ export default function OrdersPage() {
                   <Table className='w-full table-fixed text-sm'>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className='w-[170px] text-xs px-2'>Fecha</TableHead>
+                        <TableHead className='w-[170px] text-xs px-2'>Fecha de recepción</TableHead>
                         <TableHead className='w-[120px] text-xs px-2'>Pedido</TableHead>
                         <TableHead className='w-[220px] text-xs px-2'>Cliente</TableHead>
                         <TableHead className='w-[120px] text-xs px-2'>Area</TableHead>
@@ -434,7 +428,7 @@ export default function OrdersPage() {
                       {data.items.map((order: Order, index: number) => (
                         <TableRow key={order.id} className='group hover:bg-muted/50'>
                           <TableCell className='text-xs text-muted-foreground whitespace-nowrap px-2'>
-                            {formatDate(order.createdAt || '')}
+                            {formatScheduledDate(order.scheduledFor ?? order.createdAt)}
                           </TableCell>
                           <TableCell className='font-semibold text-primary text-xs px-2'>
                             {getOrderNumber(index)}
@@ -588,7 +582,7 @@ export default function OrdersPage() {
               <DialogTitle>Detalle de orden #{selectedOrder?.id}</DialogTitle>
               <DialogDescription>
                 {selectedOrder
-                  ? `${selectedOrder.User?.firstName || ''} ${selectedOrder.User?.lastName || ''} - ${formatDate(selectedOrder.createdAt)}`
+                  ? `${selectedOrder.User?.firstName || ''} ${selectedOrder.User?.lastName || ''} - Recepción: ${formatScheduledDate(selectedOrder.scheduledFor ?? selectedOrder.createdAt)}`
                   : 'Sin orden seleccionada'}
               </DialogDescription>
             </DialogHeader>

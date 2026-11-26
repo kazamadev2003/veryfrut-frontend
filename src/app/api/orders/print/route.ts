@@ -12,7 +12,7 @@ interface PrintOrderItem {
 
 interface PrintOrderPayload {
   areaName: string
-  createdAt?: string
+  scheduledFor?: string
   observation?: string
   items: PrintOrderItem[]
 }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as PrintOrderPayload
     const areaName = body?.areaName?.trim()
-    const createdAt = body?.createdAt?.trim()
+    const scheduledFor = body?.scheduledFor?.trim()
     const observation = (body?.observation || "").trim()
     const items = Array.isArray(body?.items) ? body.items : []
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       doc.setFontSize(10)
       doc.text(`Area: ${areaName}`, margin, cursorY)
       cursorY += 5
-      doc.text(`Fecha: ${formatPdfDate(createdAt)}`, margin, cursorY)
+      doc.text(`Fecha de recepcion: ${formatPdfDate(scheduledFor)}`, margin, cursorY)
       cursorY += 6
     }
 
