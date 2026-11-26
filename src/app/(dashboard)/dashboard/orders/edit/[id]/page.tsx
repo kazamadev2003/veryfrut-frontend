@@ -59,6 +59,9 @@ function EditOrderForm({ order }: { order: Order }) {
 
   const [items, setItems] = useState<DraftItem[]>(() => toInitialItems(order));
   const [observation, setObservation] = useState(order.observation ?? '');
+  const [scheduledFor, setScheduledFor] = useState(
+    order.scheduledFor?.slice(0, 10) ?? order.createdAt?.slice(0, 10) ?? ''
+  );
   const [productSearch, setProductSearch] = useState('');
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
 
@@ -201,12 +204,22 @@ function EditOrderForm({ order }: { order: Order }) {
       return;
     }
 
+    if (!scheduledFor) {
+      toast.error('Selecciona una fecha de recepción');
+      return;
+    }
+
+    if (!window.confirm(`Se actualizará la fecha de recepción a ${formatDate(scheduledFor)}. ¿Deseas continuar?`)) {
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         areaId: order.areaId,
         userId: order.userId,
         status: order.status,
         observation,
+        scheduledFor,
         totalAmount: totalQuantity,
         orderItems: cleanItems,
       });
@@ -233,6 +246,21 @@ function EditOrderForm({ order }: { order: Order }) {
           Volver
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Fecha de recepción</CardTitle>
+          <CardDescription>Programa la recepción para hoy o una fecha futura</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input
+            type='date'
+            value={scheduledFor}
+            onChange={(event) => setScheduledFor(event.target.value)}
+            className='max-w-xs'
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

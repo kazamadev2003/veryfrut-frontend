@@ -129,6 +129,7 @@ export interface UpdateOrderDto {
   totalAmount?: number;
   status?: OrderStatus;
   observation?: string;
+  scheduledFor?: string;
   orderItems?: CreateOrderItemDto[];
 }
 
